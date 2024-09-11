@@ -5,32 +5,38 @@ import { Product } from './product.entity';
 import { IProduct } from './product.interfaces';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
-import 'dotenv/config';
-
-const spaceId = process.env.CONTENTFUL_SPACE_ID;
-const accessToken = process.env.CONTENTFUL_ACCESS_TOKEN;
-const env = process.env.CONTENTFUL_ENVIRONMENT;
-const contentType = process.env.CONTENTFUL_CONTENT_TYPE;
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ProductService {
   constructor(
     @InjectRepository(Product)
     private productsRepository: Repository<Product>,
+    private readonly configService: ConfigService,
   ) {}
 
+  spaceId = this.configService.get('CONTENTFUL_SPACE_ID');
+  accessToken = this.configService.get('CONTENTFUL_ACCESS_TOKEN');
+  env = this.configService.get('CONTENTFUL_ENVIRONMENT');
+  contentType = this.configService.get('CONTENTFUL_CONTENT_TYPE');
+
   // @Cron(CronExpression.EVERY_HOUR)
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_HOUR)
   async handleCron() {
     try {
-      if (!spaceId || !accessToken || !env || !contentType) {
+      if (
+        !this.spaceId ||
+        !this.accessToken ||
+        !this.env ||
+        !this.contentType
+      ) {
         const errorMsg = 'Missing Contentful environment variables';
         Logger.error(errorMsg);
         throw new Error(errorMsg);
       }
 
       const res = await axios.get(
-        `https://cdn.contentful.com/spaces/${spaceId}/environments/${env}/entries?access_token=${accessToken}&content_type=${contentType}`,
+        `https://cdn.contentful.com/spaces/${this.spaceId}/environments/${this.env}/entries?access_token=${this.accessToken}&content_type=${this.contentType}`,
       );
 
       if (res.data && res.data.items) {
@@ -85,8 +91,71 @@ export class ProductService {
     });
   }
 
-  findStats(): Promise<Product[]> {
-    return this.productsRepository.find();
+  getCountDeletedProducts() {
+    return this.productsRepository
+      .createQueryBuilder('product')
+      .withDeleted()
+      .where('product.deletedAt IS NOT NULL')
+      .getCount();
+  }
+
+  getCountNonDeletedProducts() {
+    return this.productsRepository
+      .createQueryBuilder('product')
+      .withDeleted()
+      .where('product.deletedAt IS NULL')
+      .getCount();
+  }
+
+  getCountProductsWithPrice() {
+    return this.productsRepository
+      .createQueryBuilder('product')
+      .where('product.price IS NOT NULL')
+      .getCount();
+  }
+
+  getCountProductsWithoutPrice() {
+    return this.productsRepository
+      .createQueryBuilder('product')
+      .where('product.price IS NULL')
+      .getCount();
+  }
+
+  getCountProductsByCategory() {
+    return this.productsRepository
+      .createQueryBuilder('product')
+      .select('product.category AS category')
+      .addSelect('COUNT(*)', 'qty')
+      .groupBy('product.category')
+      .getRawMany();
+  }
+
+  async findStats() {
+    const [
+      countDeletedProducts,
+      countNonDeletedProducts,
+      countProductsWithPrice,
+      countProductsWithoutPrice,
+      countProductsByCategory,
+    ] = await Promise.all([
+      this.getCountDeletedProducts(),
+      this.getCountNonDeletedProducts(),
+      this.getCountProductsWithPrice(),
+      this.getCountProductsWithoutPrice(),
+      this.getCountProductsByCategory(),
+    ]);
+
+    const total = countNonDeletedProducts + countDeletedProducts;
+    const percentageDeleted = (countDeletedProducts / total) * 100;
+    const percentageWithoutPrice = (countProductsWithoutPrice / total) * 100;
+    const percentageWithPrice = (countProductsWithPrice / total) * 100;
+
+    return {
+      percentageDeleted: `${percentageDeleted.toFixed(2)}%`,
+      qtyWithPrice: `${percentageWithPrice.toFixed(2)}%`,
+      qtyWithoutPrice: `${percentageWithoutPrice.toFixed(2)}%`,
+      qtyByCategory: countProductsByCategory,
+    };
   }
 
   async deleteById(id: string): Promise<void> {

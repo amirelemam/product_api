@@ -1,14 +1,15 @@
 import { DataSource } from 'typeorm';
 import { Product } from './src/products/product.entity';
-import 'dotenv/config';
+import { ConfigService } from '@nestjs/config';
+const configService: ConfigService = new ConfigService();
 
 export const AppDataSource = new DataSource({
   type: 'postgres',
-  host: process.env.POSTGRES_HOST,
-  port: Number(process.env.POSTGRES_PORT),
-  username: process.env.POSTGRES_USER,
-  password: process.env.POSTGRES_PASSWORD,
-  database: process.env.POSTGRES_DB_NAME,
+  host: configService.get('POSTGRES_HOST'),
+  port: Number(configService.get('POSTGRES_PORT')),
+  username: configService.get('POSTGRES_USER'),
+  password: configService.get('POSTGRES_PASSWORD'),
+  database: configService.get('POSTGRES_DB_NAME'),
   entities: [Product],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
