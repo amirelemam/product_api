@@ -15,6 +15,11 @@ export class ProductController {
     return this.productService.findAll(name, category, minPrice, maxPrice);
   }
 
+  @Get('stats')
+  getStats() {
+    return this.productService.findStats();
+  }
+
   @Delete(':id')
   deleteById(@Param('id') id: string) {
     return this.productService.deleteById(id);
