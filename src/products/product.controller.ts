@@ -1,5 +1,13 @@
-import { Controller, Delete, Get, Param, Query } from '@nestjs/common';
+import {
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { ProductService } from './product.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('products')
 export class ProductController {
@@ -16,6 +24,7 @@ export class ProductController {
   }
 
   @Get('stats')
+  @UseGuards(JwtAuthGuard)
   getStats() {
     return this.productService.findStats();
   }

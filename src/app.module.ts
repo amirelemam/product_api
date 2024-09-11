@@ -4,6 +4,7 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Product } from './products/product.entity';
 import { ProductModule } from './products/product.module';
+import { AuthModule } from './auth/auth.module';
 import { ConfigService } from '@nestjs/config';
 const configService: ConfigService = new ConfigService();
 
@@ -21,6 +22,7 @@ const configService: ConfigService = new ConfigService();
       autoLoadEntities: true,
     }),
     ProductModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],
