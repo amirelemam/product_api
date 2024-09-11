@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { Product } from './product.entity';
 import { IProduct } from './product.interfaces';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -67,8 +67,22 @@ export class ProductService {
     }
   }
 
-  findAll(): Promise<Product[]> {
-    return this.productsRepository.find();
+  findAll(
+    name: string,
+    category: string,
+    minPrice: string,
+    maxPrice: string,
+  ): Promise<Product[]> {
+    let where = {};
+    if (name) where = { ...where, name: name };
+    if (category) where = { ...where, category: category };
+    if (minPrice) where = { ...where, price: MoreThanOrEqual(minPrice) };
+    if (maxPrice) where = { ...where, price: LessThanOrEqual(maxPrice) };
+
+    return this.productsRepository.find({
+      where,
+      take: 5,
+    });
   }
 
   findStats(): Promise<Product[]> {
