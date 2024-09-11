@@ -89,7 +89,7 @@ export class ProductService {
     return this.productsRepository.find();
   }
 
-  async remove(id: number): Promise<void> {
-    await this.productsRepository.delete(id);
+  async deleteById(id: string): Promise<void> {
+    await this.productsRepository.softDelete(id);
   }
 }
