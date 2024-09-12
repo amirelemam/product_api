@@ -17,10 +17,15 @@ export class ProductController {
   health(
     @Query('name') name,
     @Query('category') category,
-    @Query('min_price') minPrice,
-    @Query('max_price') maxPrice,
+    @Query('min_price') start_price,
+    @Query('max_price') end_price,
   ) {
-    return this.productService.findAll(name, category, minPrice, maxPrice);
+    return this.productService.findAll({
+      name,
+      category,
+      start_price,
+      end_price,
+    });
   }
 
   @Get('stats')
