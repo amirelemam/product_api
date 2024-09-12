@@ -2,11 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { Product } from './product.entity';
-import { IProduct } from './product.interfaces';
+import { IProduct, IProductFilter } from './product.interfaces';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
-// import pLimit from 'p-limit';
 
 @Injectable()
 export class ProductService {
@@ -20,8 +19,6 @@ export class ProductService {
   accessToken = this.configService.get('CONTENTFUL_ACCESS_TOKEN');
   env = this.configService.get('CONTENTFUL_ENVIRONMENT');
   contentType = this.configService.get('CONTENTFUL_CONTENT_TYPE');
-
-  // limit = pLimit(5);
 
   @Cron(CronExpression.EVERY_HOUR)
   async handleCron() {
@@ -77,17 +74,20 @@ export class ProductService {
     }
   }
 
-  findAll(
-    name: string,
-    category: string,
-    minPrice: string,
-    maxPrice: string,
-  ): Promise<Product[]> {
+  findAll(params: IProductFilter): Promise<Product[]> {
+    const {
+      name,
+      category,
+      start_price: minPrice,
+      end_price: maxPrice,
+    } = params;
+
     let where = {};
     if (name) where = { ...where, name: name };
     if (category) where = { ...where, category: category };
     if (minPrice) where = { ...where, price: MoreThanOrEqual(minPrice) };
     if (maxPrice) where = { ...where, price: LessThanOrEqual(maxPrice) };
+    Logger.log({ where });
 
     return this.productsRepository.find({
       where,
@@ -148,6 +148,12 @@ export class ProductService {
         this.getCountProductsByCategory(),
         this.getCountProductsByDateRange(startDate, endDate),
       ]);
+
+    Logger.log({
+      countStats,
+      countProductsByCategory,
+      countProductsByDateRange,
+    });
 
     const total =
       Number(countStats.countNonDeletedProducts) +
