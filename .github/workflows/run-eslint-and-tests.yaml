@@ -23,7 +23,7 @@ jobs:
           POSTGRES_PASSWORD: pass
           POSTGRES_PORT: 5432
         ports:
-          - 5432/tcp
+          - 5432:5432
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -42,12 +42,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run linter
-        uses: wearerequired/lint-action@v1.10.0
-        with:
-          eslint: true
-          eslint_extensions: js,ts
-          prettier: false
+      - name: Wait for Postgres to be ready
+        run: |
+          until pg_isready -h localhost -p 5432; do
+            echo "Waiting for Postgres to be ready..."
+            sleep 5
+          done
+        env:
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+          POSTGRES_DB: db
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+
+      - name: Run ESLint
+        run: npm run lint
 
       - name: Run tests
         run: npm test
