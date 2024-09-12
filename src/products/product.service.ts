@@ -87,7 +87,6 @@ export class ProductService {
     if (category) where = { ...where, category: category };
     if (minPrice) where = { ...where, price: MoreThanOrEqual(minPrice) };
     if (maxPrice) where = { ...where, price: LessThanOrEqual(maxPrice) };
-    Logger.log({ where });
 
     return this.productsRepository.find({
       where,
@@ -148,12 +147,6 @@ export class ProductService {
         this.getCountProductsByCategory(),
         this.getCountProductsByDateRange(startDate, endDate),
       ]);
-
-    Logger.log({
-      countStats,
-      countProductsByCategory,
-      countProductsByDateRange,
-    });
 
     const total =
       Number(countStats.countNonDeletedProducts) +
