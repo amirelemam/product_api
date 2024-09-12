@@ -20,9 +20,10 @@ export class ProductService {
   env = this.configService.get('CONTENTFUL_ENVIRONMENT');
   contentType = this.configService.get('CONTENTFUL_CONTENT_TYPE');
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_10_SECONDS)
   async handleCron() {
     try {
+      Logger.log('#### Fetching product data');
       if (
         !this.spaceId ||
         !this.accessToken ||
@@ -87,7 +88,6 @@ export class ProductService {
     if (category) where = { ...where, category: category };
     if (minPrice) where = { ...where, price: MoreThanOrEqual(minPrice) };
     if (maxPrice) where = { ...where, price: LessThanOrEqual(maxPrice) };
-    Logger.log({ where });
 
     return this.productsRepository.find({
       where,
@@ -148,12 +148,6 @@ export class ProductService {
         this.getCountProductsByCategory(),
         this.getCountProductsByDateRange(startDate, endDate),
       ]);
-
-    Logger.log({
-      countStats,
-      countProductsByCategory,
-      countProductsByDateRange,
-    });
 
     const total =
       Number(countStats.countNonDeletedProducts) +
