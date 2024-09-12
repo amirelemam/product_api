@@ -55,12 +55,8 @@ jobs:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
 
-      - name: Run linter
-        uses: wearerequired/lint-action@v1.10.0
-        with:
-          eslint: true
-          eslint_extensions: js,ts
-          prettier: false
+      - name: Run ESLint
+        run: npm run lint
 
       - name: Run tests
         run: npm test
