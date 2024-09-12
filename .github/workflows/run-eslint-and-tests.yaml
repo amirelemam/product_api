@@ -49,11 +49,11 @@ jobs:
           eslint_extensions: js,ts
           prettier: false
 
-      # - name: Run tests
-      #   run: npm test
-      #   env:
-      #     DB_HOST: localhost
-      #     DB_NAME: db
-      #     DB_USER: user
-      #     DB_PASSWORD: pass
-      #     DB_PORT: ${{ job.services.postgres.ports[5432] }}
+      - name: Run tests
+        run: npm test
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_DB: db
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: pass
+          POSTGRES_PORT: 5432
