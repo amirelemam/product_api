@@ -1,0 +1,46 @@
+networks:
+  apply_digital_service:
+
+services:
+  user_manager:
+    container_name: apply_digital
+    build:
+      context: .
+    command: npm run start:prod
+    ports:
+      - 3000:3000
+    environment:
+      - NODE_ENV=dev
+      - PORT=3000
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=postgres
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+      - POSTGRES_DB=db
+      - CONTENTFUL_SPACE_ID=9xs1613l9f7v
+      - CONTENTFUL_ACCESS_TOKEN=I-ThsT55eE_B3sCUWEQyDT4VqVO3x__20ufuie9usns
+      - CONTENTFUL_ENVIRONMENT=master
+      - CONTENTFUL_CONTENT_TYPE=product
+      - JWT_SECRET=tOfOfAVQee
+    networks:
+      - apply_digital_service
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres
+    container_name: postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+      POSTGRES_DB: db
+    networks:
+      - apply_digital_service
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+    driver: local
