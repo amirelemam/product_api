@@ -13,4 +13,7 @@ export const AppDataSource = new DataSource({
   entities: [Product],
   migrations: ['src/migrations/*.ts'],
   synchronize: false,
+  extra: {
+    max: 20, // Maximum number of connections
+  },
 });

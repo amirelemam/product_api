@@ -12,6 +12,8 @@ export interface IProduct {
   price: number;
   currency: Currency;
   stock: number;
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 export interface IProductFilter {

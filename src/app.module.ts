@@ -20,6 +20,9 @@ const configService: ConfigService = new ConfigService();
       entities: [Product],
       synchronize: false,
       autoLoadEntities: true,
+      extra: {
+        max: 20, // Maximum number of connections
+      },
     }),
     ProductModule,
     AuthModule,

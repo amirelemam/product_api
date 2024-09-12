@@ -6,6 +6,7 @@ import { IProduct } from './product.interfaces';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import axios from 'axios';
 import { ConfigService } from '@nestjs/config';
+// import pLimit from 'p-limit';
 
 @Injectable()
 export class ProductService {
@@ -20,7 +21,8 @@ export class ProductService {
   env = this.configService.get('CONTENTFUL_ENVIRONMENT');
   contentType = this.configService.get('CONTENTFUL_CONTENT_TYPE');
 
-  // @Cron(CronExpression.EVERY_HOUR)
+  // limit = pLimit(5);
+
   @Cron(CronExpression.EVERY_HOUR)
   async handleCron() {
     try {
@@ -59,6 +61,8 @@ export class ProductService {
         newProduct.price = item.fields.price;
         newProduct.currency = item.fields.currency;
         newProduct.stock = item.fields.stock;
+        newProduct.createdAt = new Date(item.sys.createdAt);
+        newProduct.updatedAt = new Date(item.sys.updatedAt);
 
         return newProduct;
       });
@@ -91,36 +95,6 @@ export class ProductService {
     });
   }
 
-  getCountDeletedProducts() {
-    return this.productsRepository
-      .createQueryBuilder('product')
-      .withDeleted()
-      .where('product.deletedAt IS NOT NULL')
-      .getCount();
-  }
-
-  getCountNonDeletedProducts() {
-    return this.productsRepository
-      .createQueryBuilder('product')
-      .withDeleted()
-      .where('product.deletedAt IS NULL')
-      .getCount();
-  }
-
-  getCountProductsWithPrice() {
-    return this.productsRepository
-      .createQueryBuilder('product')
-      .where('product.price IS NOT NULL')
-      .getCount();
-  }
-
-  getCountProductsWithoutPrice() {
-    return this.productsRepository
-      .createQueryBuilder('product')
-      .where('product.price IS NULL')
-      .getCount();
-  }
-
   getCountProductsByCategory() {
     return this.productsRepository
       .createQueryBuilder('product')
@@ -130,30 +104,75 @@ export class ProductService {
       .getRawMany();
   }
 
-  async findStats() {
-    const [
-      countDeletedProducts,
-      countNonDeletedProducts,
-      countProductsWithPrice,
-      countProductsWithoutPrice,
-      countProductsByCategory,
-    ] = await Promise.all([
-      this.getCountDeletedProducts(),
-      this.getCountNonDeletedProducts(),
-      this.getCountProductsWithPrice(),
-      this.getCountProductsWithoutPrice(),
-      this.getCountProductsByCategory(),
-    ]);
+  getCountProductsByDateRange(startDate: Date, endDate: Date) {
+    return this.productsRepository
+      .createQueryBuilder('product')
+      .where('product.createdAt BETWEEN :startDate AND :endDate', {
+        startDate,
+        endDate,
+      })
+      .getCount();
+  }
 
-    const total = countNonDeletedProducts + countDeletedProducts;
-    const percentageDeleted = (countDeletedProducts / total) * 100;
-    const percentageWithoutPrice = (countProductsWithoutPrice / total) * 100;
-    const percentageWithPrice = (countProductsWithPrice / total) * 100;
+  getProductStatistics() {
+    return this.productsRepository
+      .createQueryBuilder('product')
+      .withDeleted()
+      .select('COUNT(*)', 'totalProducts')
+      .addSelect(
+        'SUM(CASE WHEN product.deletedAt IS NOT NULL THEN 1 ELSE 0 END)',
+        'countDeletedProducts',
+      )
+      .addSelect(
+        'SUM(CASE WHEN product.deletedAt IS NULL THEN 1 ELSE 0 END)',
+        'countNonDeletedProducts',
+      )
+      .addSelect(
+        'SUM(CASE WHEN product.price IS NOT NULL THEN 1 ELSE 0 END)',
+        'countProductsWithPrice',
+      )
+      .addSelect(
+        'SUM(CASE WHEN product.price IS NULL THEN 1 ELSE 0 END)',
+        'countProductsWithoutPrice',
+      )
+      .getRawOne();
+  }
+
+  async findStats() {
+    const endDate = new Date('2024-01-23T18:45:00');
+    const startDate = new Date('2023-12-23T18:45:00');
+
+    const [countStats, countProductsByCategory, countProductsByDateRange] =
+      await Promise.all([
+        this.getProductStatistics(),
+        this.getCountProductsByCategory(),
+        this.getCountProductsByDateRange(startDate, endDate),
+      ]);
+
+    const total =
+      Number(countStats.countNonDeletedProducts) +
+      Number(countStats.countDeletedProducts);
+
+    const percentageDeleted =
+      (Number(countStats.countDeletedProducts) / total) * 100;
+
+    const percentageWithoutPrice =
+      (Number(countStats.countProductsWithoutPrice) / total) * 100;
+
+    const percentageWithPrice =
+      (Number(countStats.countProductsWithPrice) / total) * 100;
+
+    const percentageByDateRange =
+      (Number(countProductsByDateRange) / total) * 100;
+
+    const formattedStartDate = `${('0' + startDate.getDate()).slice(-2)}/${('0' + (startDate.getMonth() + 1)).slice(-2)}/${startDate.getFullYear()}`;
+    const formattedEndDate = `${('0' + endDate.getDate()).slice(-2)}/${('0' + (endDate.getMonth() + 1)).slice(-2)}/${endDate.getFullYear()}`;
 
     return {
-      percentageDeleted: `${percentageDeleted.toFixed(2)}%`,
-      qtyWithPrice: `${percentageWithPrice.toFixed(2)}%`,
-      qtyWithoutPrice: `${percentageWithoutPrice.toFixed(2)}%`,
+      percentageDeleted: `${percentageDeleted.toFixed(0)}%`,
+      qtyWithPrice: `${percentageWithPrice.toFixed(0)}%`,
+      qtyWithoutPrice: `${percentageWithoutPrice.toFixed(0)}%`,
+      percentageByDateRange: `From ${formattedStartDate} to ${formattedEndDate}: ${percentageByDateRange.toFixed(0)}%`,
       qtyByCategory: countProductsByCategory,
     };
   }
