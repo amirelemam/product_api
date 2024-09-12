@@ -20,10 +20,9 @@ export class ProductService {
   env = this.configService.get('CONTENTFUL_ENVIRONMENT');
   contentType = this.configService.get('CONTENTFUL_CONTENT_TYPE');
 
-  @Cron(CronExpression.EVERY_10_SECONDS)
+  @Cron(CronExpression.EVERY_HOUR)
   async handleCron() {
     try {
-      Logger.log('#### Fetching product data');
       if (
         !this.spaceId ||
         !this.accessToken ||
